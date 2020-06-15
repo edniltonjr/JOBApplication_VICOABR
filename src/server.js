@@ -21,12 +21,16 @@ connection.connect(function(err) {
   });
 
 
+  const toDate = (dateStr) => {
+    const [day, month, year] = dateStr.split("/")
+    return new Date(year, month - 1, day)
+  }
 
 
 
 
   //CRON INTERVAL 30s
-cron.schedule("*/20 * * * * *", () => {
+cron.schedule("*/10 * * * * *", () => {
     //SETANDO DATA/HORA ATUAL
     const value = Date.now();
     const datetime0 = moment(value)
@@ -34,27 +38,41 @@ cron.schedule("*/20 * * * * *", () => {
     
     
     //SETANDO HORA ATUAL - INTERVALO
-    const time = moment.duration("50:00:00");
+    const time = moment.duration("26:25:00");
     const datetime1 = moment(value);
     datetime1.subtract(time);
     const dataAtualMenos2Horas = datetime1.format("DD/MM/YYYY HH:mm:SS");  
 
-    console.log("\x1b[34m Hora Inicial:  ",dataAtualMenos2Horas);
-    console.log(' Hora Final:    ',dataAtual, '\x1b[0m');
+
+    const dataInicialEscolhida = '12/06/2020 14:28:00'
+    const dataFinalEscolhida = '12/06/2020 17:30:00'
+
+    
+    console.log("\x1b[34m Hora Inicial:  ",dataInicialEscolhida);
+    console.log(' Hora Final:    ',dataFinalEscolhida, '\x1b[0m');
 
 
-    const url =`${process.env.API_URL}?data_inicial=${dataAtualMenos2Horas}&data_final=${dataAtual}&servico=12&status=ENCERRADA&resultado=ATENDIDA&formato=json`;
+    // console.log("\x1b[34m Hora Inicial:  ",dataAtualMenos2Horas);
+    // console.log(' Hora Final:    ',dataAtual, '\x1b[0m');
+
+
+    const url =`${process.env.API_URL}?data_inicial=${dataInicialEscolhida}&data_final=${dataFinalEscolhida}&servico=all&formato=json`;
     axios.get(url).then( res => {   
         let count = 0;
         res.data.RESULTADO.map( (row) => {
             if(row.tabulacao !== "")  {
 
-                const sql = `INSERT INTO relatorio_de_chamadas_bkp (data, hora, origem, destino, tempo_total, codigo_usuario, nome_campanha, nome_tronco, tabulacao, gravacao_id, cpf_cliente) VALUES 
-                ('${moment(row.data).format("YYYY-MM-DD")}', '${row.hora}', '${row.origem}', '${row.destino}',  '${row.tempo_total}', '${row.codigo_usuario}', '${row.nome_campanha}', '${row.nome_tronco}', '${row.tabulacao}', '${row.gravacao_id}', '${row.cpf}')`;
+                const dataFormatada = moment(toDate(row.data)).format("YYYY-MM-DD");
+
+                const sql = `INSERT INTO relatorio_de_chamadas (data, hora, origem, destino, tempo_total, codigo_usuario, nome_campanha, nome_tronco, tabulacao, gravacao_id, cpf_cliente, campo_livre, created_at) VALUES 
+                ('${dataFormatada}', '${row.hora}', '${row.origem}', '${row.destino}',  '${row.tempo_total}', '${row.codigo_usuario}', '${row.nome_campanha}', '${row.nome_tronco}', '${row.tabulacao}', '${row.gravacao_id}', '${row.cpf}', '${row.campolivre01}', CURRENT_TIMESTAMP)`;
                   connection.query(sql, function (err, result) {
 
                     if (!err) {
-                        console.log(`Registro de Chamada ${row.gravacao_id} inserido`);
+                        console.log(`Registro de Chamada ${row.gravacao_id} inserido / DATA: ${row.data} ${row.hora}`);
+                    }
+                    else {
+                        console.log(err);
                     }
                 });   
             }
